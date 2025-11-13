@@ -1,0 +1,21 @@
+{
+  "name": "401k-contribution-app",
+  "version": "1.0.0",
+  "description": "401(k) Contribution Management Application",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "python server/app.py",
+    "client": "cd client && npm start",
+    "install-all": "cd client && npm install"
+  },
+  "keywords": [
+    "401k",
+    "retirement",
+    "contribution"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
