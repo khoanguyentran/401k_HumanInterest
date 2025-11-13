@@ -1,14 +1,16 @@
 # 401(k) Contribution Management Application
 
-A single-page web application for managing 401(k) retirement contributions with an intuitive interface and backend API service.
+A single-page web application for managing 401(k) retirement contributions with an intuitive interface and Flask backend API service.
 
 ## Features
 
 - **Contribution Type Selection**: Choose between percentage of paycheck or fixed dollar amount per paycheck
 - **Interactive Rate Adjustment**: Use a slider or text input to set your desired contribution rate
 - **Year-to-Date (YTD) Display**: View your current YTD contributions with mock data
-- **Retirement Impact Calculator**: See how your contribution changes will affect your retirement savings
+- **Current Contribution Retirement Impact**: Always-visible component showing projected retirement savings from your current saved contribution rate
+- **Additional Contribution Impact**: See how increasing your contribution will affect your retirement savings
 - **Persistent Storage**: Save and load your contribution settings via backend API
+- **Age-Adjustable Calculations**: Adjust your age to see how it affects retirement projections
 
 ## Technical Stack
 
@@ -42,14 +44,14 @@ A single-page web application for managing 401(k) retirement contributions with 
 
 3. **Install frontend dependencies:**
    ```bash
+   npm run install-all
+   ```
+   
+   Or manually:
+   ```bash
    cd client
    npm install
    cd ..
-   ```
-   
-   Or use the convenience script:
-   ```bash
-   npm run install-all
    ```
 
 ## Running the Application
@@ -132,7 +134,7 @@ Retrieves year-to-date contribution data and mock user information.
 {
   "success": true,
   "data": {
-    "age": 30,
+    "age": 22,
     "annualSalary": 75000,
     "paychecksPerYear": 26,
     "ytdContributions": 4500,
@@ -149,24 +151,46 @@ Retrieves year-to-date contribution data and mock user information.
 ```
 
 ### GET `/api/retirement-impact`
-Calculates the retirement impact of changing contribution rates.
+Calculates the retirement impact of changing contribution rates (additional contribution only).
 
 **Query Parameters:**
-- `currentRate`: Current contribution rate
-- `newRate`: New contribution rate
+- `currentRate`: Current saved contribution rate
+- `newRate`: New contribution rate being considered
 - `contributionType`: "percentage" or "dollar"
-- `age`: User's current age (optional, defaults to 30)
+- `age`: User's current age (optional, defaults to mock data age)
 
 **Response:**
 ```json
 {
   "success": true,
   "data": {
-    "additionalContributionPerPaycheck": 144.23,
-    "additionalAnnualContribution": 3750,
-    "yearsToRetirement": 35,
-    "projectedRetirementSavings": 500000,
+    "additionalContributionPerPaycheck": 57.69,
+    "additionalAnnualContribution": 1499.94,
+    "yearsToRetirement": 43,
+    "projectedRetirementSavings": 350000,
     "annualReturnRate": 0.07
+  }
+}
+```
+
+### GET `/api/current-contribution-impact`
+Calculates the retirement impact of the current saved contribution settings.
+
+**Query Parameters:**
+- `age`: User's current age (optional, defaults to mock data age)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "contributionPerPaycheck": 144.23,
+    "annualContribution": 3750,
+    "yearsToRetirement": 43,
+    "projectedRetirementSavings": 875000,
+    "annualReturnRate": 0.07,
+    "contributionType": "percentage",
+    "contributionRate": 5
   }
 }
 ```
@@ -182,7 +206,9 @@ Calculates the retirement impact of changing contribution rates.
 │   ├── src/
 │   │   ├── App.js        # Main React component
 │   │   ├── App.css       # Styles
+│   │   ├── index.js      # React entry point
 │   │   └── ...
+│   ├── public/           # Static assets
 │   └── package.json
 ├── requirements.txt      # Python dependencies
 ├── package.json          # Root package.json with scripts
@@ -191,59 +217,58 @@ Calculates the retirement impact of changing contribution rates.
 
 ## Mock Data
 
-The application uses the following mock data for demonstration:
+The application uses the following mock data for demonstration (defined in `server/app.py`):
+
+- **Age**: 22 years old
 - **Annual Salary**: $75,000
 - **Pay Frequency**: Bi-weekly (26 paychecks per year)
 - **YTD Contributions**: $4,500
 - **Pay Periods Elapsed**: 13 (halfway through the year)
-- **Default Age**: 30 years old
+- **Default Contribution Type**: Percentage
+- **Default Contribution Rate**: 5%
+- **Contribution Amount Per Paycheck**: $144.23 (5% of $2,884.62)
+- **Contribution Amount Annual**: $3,750 (5% of $75,000)
 - **Retirement Age**: 65
 - **Assumed Annual Return**: 7%
 
 ## Usage
 
-1. **Select Contribution Type**: Choose between "Percentage of Paycheck" or "Fixed Dollar Amount"
-2. **Adjust Contribution Rate**: Use the slider or type directly into the input field
-3. **View Preview**: See how much you'll contribute per paycheck and annually
-4. **Check Retirement Impact**: Adjust your age and see how your contribution changes will affect your retirement savings
-5. **Save Settings**: Click "Save Contribution Settings" to persist your choices
+1. **View YTD Contributions**: See your year-to-date contributions and annual salary information
+2. **Select Contribution Type**: Choose between "Percentage of Paycheck" or "Fixed Dollar Amount"
+3. **Adjust Contribution Rate**: Use the slider or type directly into the input field to set your desired rate
+4. **View Preview**: See how much you'll contribute per paycheck and annually based on your selection
+5. **Check Current Contribution Impact**: View the always-visible retirement impact card showing projected savings from your current saved contribution rate
+6. **Check Additional Impact**: When adjusting your rate above the saved rate, see how the additional contribution will affect your retirement savings
+7. **Adjust Age**: Change your age in the retirement impact card to see how it affects projections
+8. **Save Settings**: Click "Save Contribution Settings" to persist your choices
+
+## Retirement Impact Calculations
+
+The application uses the **Future Value of an Annuity** formula to calculate retirement savings:
+
+```
+FV = PMT × (((1 + r)^n - 1) / r)
+```
+
+Where:
+- **FV** = Future Value (projected retirement savings)
+- **PMT** = Annual contribution amount
+- **r** = Annual return rate (7% = 0.07)
+- **n** = Years to retirement (65 - current age)
+
+This formula accounts for compound interest over time, showing how regular contributions grow with investment returns.
 
 ## Development
 
 ### Backend Development
 - The backend server uses Flask with debug mode enabled for auto-reloading during development
 - Data is stored in `server/data.json` (created automatically on first run)
-- To run the Flask server in development mode, use: `python server/app.py` (debug mode is enabled by default)
+- To run the Flask server in development mode: `python server/app.py` (debug mode is enabled by default)
+- Mock user data is defined in `MOCK_USER_DATA` at the top of `server/app.py`
 
 ### Frontend Development
 - The React app uses Create React App
 - The frontend proxies API requests to `http://localhost:3001` (configured in `client/package.json`)
-
-## Troubleshooting
-
-**Python Not Found:**
-- Make sure Python 3.7+ is installed. Check with: `python --version` or `python3 --version`
-- On some systems, you may need to use `python3` instead of `python`
-
-**Port Already in Use:**
-- If port 3000 or 3001 is already in use, you can:
-  - Stop the process using those ports
-  - Or modify the ports in `server/app.py` (PORT) and `client/package.json` (proxy)
-
-**CORS Issues:**
-- The backend is configured with CORS enabled for local development
-- If you encounter CORS errors, ensure the backend is running on port 3001
-
-**Data Not Persisting:**
-- Ensure the `server/data.json` file has write permissions
-- Check that the server has write access to the `server/` directory
-
-**Module Not Found Errors:**
-- Make sure you've installed Python dependencies: `pip install -r requirements.txt`
-- Consider using a virtual environment:
-  ```bash
-  python -m venv venv
-  source venv/bin/activate  # On Windows: venv\Scripts\activate
-  pip install -r requirements.txt
-  ```
+- Main application logic is in `client/src/App.js`
+- Styles are in `client/src/App.css`
 
